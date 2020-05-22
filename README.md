@@ -1,6 +1,6 @@
 # lockdown.sh
 
-Lockdown.sh is a single zero config shell script to be run to lockdown a newly installed linux os. Lockdown.sh aims to set a sensible baseline which can be built upon for specific needs.
+Lockdown.sh is a single file zero config shell script to be run to lockdown a newly installed linux os. Lockdown.sh aims to set a sensible baseline which can be built upon for specific needs.
 
 - Zero Config
 - Zero Install
@@ -23,7 +23,7 @@ chmod +x ./lockdown.sh
 - (Should work with most debian and debian based OS's)
 
 ## Contributing
-Please open pull requests issues on github for anything you find.
+Please open pull requests and issues on github for anything you find.
 
 ## References
 - https://github.com/CISOfy/lynis 
