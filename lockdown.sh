@@ -122,11 +122,11 @@ dpkg-reconfigure -plow unattended-upgrades
 # Install auditd
 apt install auditd -y
 echo "
-## First rule - delete all
+# First rule - delete all
 -D
 
-## Increase the buffers to survive stress events.
-## Make this bigger for busy systems
+# Increase the buffers to survive stress events.
+# Make this bigger for busy systems
 -b 8192
 
 ## This determine how long to wait in burst of events
@@ -134,6 +134,14 @@ echo "
 
 ## Set failure mode to syslog
 -f 1
+
+-a exit,always -S unlink -S rmdir
+-a exit,always -S stime.*
+-a exit,always -S setrlimit.*
+-w /etc/group -p wa
+-w /etc/passwd -p wa
+-w /etc/shadow -p wa
+-w /etc/sudoers -p wa
 
 ## Make the configuration immutable - reboot is required to change audit rules
 #-e 2
@@ -187,6 +195,8 @@ install hfsplus /bin/true
 install jffs2 /bin/true
 install squashfs /bin/true" >> /etc/modprobe.d/filesystems.conf
 echo "install udf /bin/true
+blacklist usb-storage
+blacklist firewire-core
 blacklist firewire-ohci
 blacklist firewire-sbp2" >> /etc/modprobe.d/blacklist.conf
 echo "install sctp /bin/true
