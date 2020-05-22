@@ -188,6 +188,10 @@ Legal action will be taken. Disconnect now.
 # Install recommended packages
 apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide rkhunter -y
 
+# Setup aide
+aideinit
+mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+
 # Disable unused filesystems, firewire and protocols
 echo "install cramfs /bin/true
 install freevxfs /bin/true
@@ -211,6 +215,9 @@ chmod 750 /home/debian
 
 # Restrict access to compilers
 chmod o-rx /usr/bin/as
+
+# Move tmp to tmpfs
+echo "tmpfs /tmp tmpfs rw,nosuid,nodev" >> /etc/fstab
 
 # Purge old/removed packages
 apt autoremove -y
