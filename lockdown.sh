@@ -170,6 +170,7 @@ MaxAuthTries 3
 MaxSessions 2
 TCPKeepAlive no
 AllowAgentForwarding no
+AllowTcpForwarding no
 Port 141
 " >> /etc/ssh/sshd_config
 sed -i s/^X11Forwarding.*/X11Forwarding\ no/ /etc/ssh/sshd_config
@@ -207,6 +208,9 @@ install tipc /bin/true" >> /etc/modprobe.d/protocols.conf
 # Change /root permissions
 chmod 700 /root
 chmod 750 /home/debian
+
+# Restrict access to compilers
+chmod o-rx /usr/bin/as
 
 # Purge old/removed packages
 apt autoremove -y
