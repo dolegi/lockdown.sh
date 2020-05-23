@@ -1,4 +1,8 @@
+<img align="left" width="100" height="100" src="/logo.svg"/>
+
 # lockdown.sh
+<br/>
+<br/>
 
 Lockdown.sh is a single file zero config shell script to be run to lockdown a newly installed linux os. Lockdown.sh aims to set a sensible baseline which can be built upon for specific needs.
 
