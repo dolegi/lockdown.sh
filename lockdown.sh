@@ -79,36 +79,38 @@ ip6tables-save > /etc/iptables/rules.v6
 apt install fail2ban -y
 
 # Configure Kernel
-echo "
-  net.ipv4.tcp_syncookies: 1
-  net.ipv4.conf.all.accept_source_route: 0
-  net.ipv6.conf.all.accept_source_route: 0
-  net.ipv4.conf.default.accept_source_route: 0
-  net.ipv6.conf.default.accept_source_route: 0
-  net.ipv4.conf.all.accept_redirects: 0
-  net.ipv6.conf.all.accept_redirects: 0
-  net.ipv4.conf.default.accept_redirects: 0
-  net.ipv6.conf.default.accept_redirects: 0
-  net.ipv4.conf.all.secure_redirects: 1
-  net.ipv4.conf.default.secure_redirects: 1
-  net.ipv4.ip_forward: 0
-  net.ipv6.conf.all.forwarding: 0
-  net.ipv4.conf.all.send_redirects: 0
-  net.ipv4.conf.default.send_redirects: 0
-  net.ipv4.conf.all.rp_filter: 1
-  net.ipv4.conf.default.rp_filter: 1
-  net.ipv4.icmp_echo_ignore_broadcasts: 1
-  net.ipv4.icmp_ignore_bogus_error_responses: 1
-  net.ipv4.icmp_echo_ignore_all: 0
-  net.ipv4.conf.all.log_martians: 1
-  net.ipv4.conf.default.log_martians: 1
-  net.ipv4.tcp_rfc1337: 1
-  kernel.randomize_va_space: 2
-  fs.protected_hardlinks: 1
-  fs.protected_symlinks: 1
-  kernel.kptr_restrict: 1
-  kernel.perf_event_paranoid: 2
-" > /etc/sysctl.conf
+echo "net.ipv4.tcp_syncookies: 1
+net.ipv4.conf.all.accept_source_route: 0
+net.ipv6.conf.all.accept_source_route: 0
+net.ipv4.conf.default.accept_source_route: 0
+net.ipv6.conf.default.accept_source_route: 0
+net.ipv4.conf.all.accept_redirects: 0
+net.ipv6.conf.all.accept_redirects: 0
+net.ipv4.conf.default.accept_redirects: 0
+net.ipv6.conf.default.accept_redirects: 0
+net.ipv4.conf.all.secure_redirects: 1
+net.ipv4.conf.default.secure_redirects: 1
+net.ipv4.ip_forward: 0
+net.ipv6.conf.all.forwarding: 0
+net.ipv4.conf.all.send_redirects: 0
+net.ipv4.conf.default.send_redirects: 0
+net.ipv4.conf.all.rp_filter: 1
+net.ipv4.conf.default.rp_filter: 1
+net.ipv4.icmp_echo_ignore_broadcasts: 1
+net.ipv4.icmp_ignore_bogus_error_responses: 1
+net.ipv4.icmp_echo_ignore_all: 0
+net.ipv4.conf.all.log_martians: 1
+net.ipv4.conf.default.log_martians: 1
+net.ipv4.tcp_rfc1337: 1
+kernel.randomize_va_space: 2
+fs.protected_hardlinks: 1
+fs.protected_symlinks: 1
+kernel.perf_event_paranoid: 2
+kernel.core_uses_pid: 1
+kernel.kptr_restrict: 2
+kernel.sysrq: 0
+kernel.yama.ptrace_scope: 1" > /etc/sysctl.d/80-lockdown.conf
+sysctl --system
 
 # Add Daily Update Cron Job
 touch job
@@ -143,27 +145,6 @@ echo "
 -w /etc/audit/ -p wa -k auditconfig
 -w /etc/libaudit.conf -p wa -k auditconfig
 -w /etc/audisp/ -p wa -k audispconfig
-
-# Monitor for use of audit management tools
-# Check your paths
--w /sbin/auditctl -p x -k audittools
--w /sbin/auditd -p x -k audittools
-
-# Special files
--a exit,always -F arch=b32 -S mknod -S mknodat -k specialfiles
--a exit,always -F arch=b64 -S mknod -S mknodat -k specialfiles
-
-# Mount operations
--a exit,always -F arch=b32 -S mount -S umount -S umount2 -k mount
--a exit,always -F arch=b64 -S mount -S umount2 -k mount
-
-# Changes to the time
--a exit,always -F arch=b32 -S adjtimex -S settimeofday -S stime -S clock_settime -k time
--a exit,always -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k time
--w /etc/localtime -p wa -k localtime
-
-# Use of stunnel
--w /usr/sbin/stunnel -p x -k stunnel
 
 # Schedule jobs
 -w /etc/cron.allow -p wa -k cron
@@ -224,10 +205,6 @@ echo "
 -a exit,always -F arch=b32 -S sethostname -k hostname
 -a exit,always -F arch=b64 -S sethostname -k hostname
 
-# Changes to issue
--w /etc/issue -p wa -k etcissue
--w /etc/issue.net -p wa -k etcissue
-
 # Log all commands executed by root
 -a exit,always -F arch=b64 -F euid=0 -S execve -k rootcmd
 -a exit,always -F arch=b32 -F euid=0 -S execve -k rootcmd
@@ -256,12 +233,15 @@ echo "
 
 # Make the configuration immutable
 -e 2
-" > /etc/audit/audit.rules
+" > /etc/audit/rules.d/audit.rules
 systemctl enable auditd.service
 service auditd restart
 
 # Disable core dumps
 echo "* hard core 0" >> /etc/security/limits.conf
+echo "ProcessSizeMax=0
+Storage=none" >> /etc/systemd/coredump.conf
+echo "ulimit -c 0" >> /etc/profile
 
 # Set login.defs
 sed -i s/UMASK.*/UMASK\ 027/ /etc/login.defs
@@ -283,6 +263,7 @@ TCPKeepAlive no
 AllowAgentForwarding no
 AllowTcpForwarding no
 Port 141
+AllowUsers root
 " >> /etc/ssh/sshd_config
 sed -i s/^X11Forwarding.*/X11Forwarding\ no/ /etc/ssh/sshd_config
 
@@ -297,7 +278,7 @@ Legal action will be taken. Disconnect now.
 " > /etc/issue.net
 
 # Install recommended packages
-apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide rkhunter -y
+apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide usbguard -y
 
 # Setup aide
 aideinit
@@ -329,6 +310,18 @@ chmod o-rx /usr/bin/as
 
 # Move tmp to tmpfs
 echo "tmpfs /tmp tmpfs rw,nosuid,nodev" >> /etc/fstab
+
+# Mount tmp with noexec
+mount -o remount,noexec /tmp
+
+# Mount /proc with hidepid=2
+mount -o remount,rw,hidepid=2 /proc
+
+# Mount /dev with noexec
+mount -o remount,noexec /dev
+
+# Mount /run as nodev
+mount -o remount,nodev /run
 
 # Purge old/removed packages
 apt autoremove -y
