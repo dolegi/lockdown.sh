@@ -252,6 +252,14 @@ SHA_CRYPT_MIN_ROUNDS 1000000
 SHA_CRYPT_MAX_ROUNDS 100000000
 " >> /etc/login.defs
 
+# Create admin user
+echo "Enter admin username"; read username
+adduser $username
+mkdir /home/$username/.ssh
+cp /root/.ssh/authorized_keys /home/$username/.ssh/authorized_keys
+chown -R $username /home/$username/.ssh
+usermod -aG sudo $username
+
 # Secure ssh
 echo "
 ClientAliveCountMax 2
@@ -263,9 +271,12 @@ TCPKeepAlive no
 AllowAgentForwarding no
 AllowTcpForwarding no
 Port 141
-AllowUsers root
+AllowUsers $username
+PermitRootLogin no
+PasswordAuthentication no
 " >> /etc/ssh/sshd_config
 sed -i s/^X11Forwarding.*/X11Forwarding\ no/ /etc/ssh/sshd_config
+sed -i s/^UsePAM.*/UsePAM\ no/ /etc/ssh/sshd_config
 
 # Add legal banner
 echo "
@@ -330,6 +341,9 @@ mount -o remount,nodev /run
 # Purge old/removed packages
 apt autoremove -y
 apt purge "$(dpkg -l | grep '^rc' | awk '{print $2}')" -y
+
+# Info
+echo "From now on access this host with 'ssh $username@$(hostname) -p 141'"
 
 # Reboot
 reboot
