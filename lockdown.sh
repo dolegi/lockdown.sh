@@ -278,11 +278,15 @@ Legal action will be taken. Disconnect now.
 " > /etc/issue.net
 
 # Install recommended packages
-apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide usbguard -y
+apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide usbguard acct -y
 
 # Setup aide
 aideinit
 mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+
+# Enable process accounting
+systemctl enable acct.service
+systemctl start acct.service
 
 # Disable unused filesystems, firewire and protocols
 echo "install cramfs /bin/true
