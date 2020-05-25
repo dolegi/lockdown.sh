@@ -1,4 +1,4 @@
-<img align="left" width="100" height="100" src="/logo.svg"/>
+<img align="left" width="100" height="100" src="/logo.png"/>
 
 # lockdown.sh
 <br/>
