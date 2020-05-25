@@ -8,13 +8,13 @@ Lockdown.sh is a single file zero config shell script to be run to lockdown a ne
 
 - Zero Config
 - Zero Install
-- Single file POSIX shell script
+- Single file shell script
 
 ## WARNING
-This script changes the ssh port to `141`. And restricts ssh to key only for the created admin user.
+This script changes the ssh port to `141`. And restricts ssh to key only for the created admin user if an admin user is created.
 
 ## Usage
-Download and run the script as root, if prompted for anything select `y`. 
+Download and run the script as root, select which sections to run when prompted.
 ```bash
 wget https://raw.githubusercontent.com/x08d/lockdown.sh/master/lockdown.sh
 chmod +x ./lockdown.sh
@@ -49,6 +49,7 @@ chmod +x ./lockdown.sh
 - Debian 10
 - Debian 8
 - (Should work with most debian and debian based OS's)
+- Others are coming soon
 
 ## Contributing
 Please open pull requests and issues on github for anything you find.
