@@ -26,7 +26,7 @@ iptables -A INPUT -i lo -p all -j ACCEPT
 # Allow three-way Handshake
 iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# Stop Masked Attackes
+# Stop Masked Attacks
 iptables -A INPUT -p icmp --icmp-type 13 -j DROP
 iptables -A INPUT -p icmp --icmp-type 17 -j DROP
 iptables -A INPUT -p icmp --icmp-type 14 -j DROP
