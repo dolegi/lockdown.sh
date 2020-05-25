@@ -1,85 +1,92 @@
 #!/bin/sh
 
-# Update package list
-apt update
+apt_update() {
+  # Update package list
+  apt update
 
-# Apt upgrade packages
-apt upgrade -y
+  # Apt upgrade packages
+  apt upgrade -y
 
-# Apt full upgrade 
-apt full-upgrade -y
+  # Apt full upgrade 
+  apt full-upgrade -y
+}
 
-# iptables
-apt install iptables-persistent -y
+configure_iptables() {
+  # iptables
+  apt install iptables-persistent -y
 
-# Flush existing rules
-iptables -F
+  # Flush existing rules
+  iptables -F
+  
+  # Defaults
+  iptables -P INPUT DROP
+  iptables -P FORWARD DROP
+  iptables -P OUTPUT ACCEPT
+  
+  # Accept loopback input
+  iptables -A INPUT -i lo -p all -j ACCEPT
+  
+  # Allow three-way Handshake
+  iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+  
+  # Stop Masked Attacks
+  iptables -A INPUT -p icmp --icmp-type 13 -j DROP
+  iptables -A INPUT -p icmp --icmp-type 17 -j DROP
+  iptables -A INPUT -p icmp --icmp-type 14 -j DROP
+  iptables -A INPUT -p icmp -m limit --limit 1/second -j ACCEPT
+  
+  # Discard invalid Packets
+  iptables -A INPUT -m state --state INVALID -j DROP
+  iptables -A FORWARD -m state --state INVALID -j DROP
+  iptables -A OUTPUT -m state --state INVALID -j DROP
+  
+  # Drop Spoofing attacks
+  iptables -A INPUT -s 10.0.0.0/8 -j DROP
+  iptables -A INPUT -s 169.254.0.0/16 -j DROP
+  iptables -A INPUT -s 172.16.0.0/12 -j DROP
+  iptables -A INPUT -s 127.0.0.0/8 -j DROP
+  iptables -A INPUT -s 192.168.0.0/24 -j DROP
+  iptables -A INPUT -s 224.0.0.0/4 -j DROP
+  iptables -A INPUT -d 224.0.0.0/4 -j DROP
+  iptables -A INPUT -s 240.0.0.0/5 -j DROP
+  iptables -A INPUT -d 240.0.0.0/5 -j DROP
+  iptables -A INPUT -s 0.0.0.0/8 -j DROP
+  iptables -A INPUT -d 0.0.0.0/8 -j DROP
+  iptables -A INPUT -d 239.255.255.0/24 -j DROP
+  iptables -A INPUT -d 255.255.255.255 -j DROP
+  
+  # Drop packets with excessive RST to avoid Masked attacks
+  iptables -A INPUT -p tcp -m tcp --tcp-flags RST RST -m limit --limit 2/second --limit-burst 2 -j ACCEPT
+  
+  # Block ips doing portscan for 24 hours
+  iptables -A INPUT   -m recent --name portscan --rcheck --seconds 86400 -j DROP
+  iptables -A FORWARD -m recent --name portscan --rcheck --seconds 86400 -j DROP
+  
+  # After 24 hours remove IP from block list
+  iptables -A INPUT   -m recent --name portscan --remove
+  iptables -A FORWARD -m recent --name portscan --remove
+  
+  # Allow ssh
+  iptables -A INPUT -p tcp -m tcp --dport 141 -j ACCEPT
+  
+  # Allow Ping
+  iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
+  
+  # Allow one ssh connection at a time
+  iptables -A INPUT -p tcp --syn --dport 141 -m connlimit --connlimit-above 2 -j REJECT
+  
+  iptables-save > /etc/iptables/rules.v4
+  ip6tables-save > /etc/iptables/rules.v6
+}
 
-# Defaults
-iptables -P INPUT DROP
-iptables -P FORWARD DROP
-iptables -P OUTPUT ACCEPT
+install_fail2ban() {
+  # Install fail2ban
+  apt install fail2ban -y
+}
 
-# Accept loopback input
-iptables -A INPUT -i lo -p all -j ACCEPT
-
-# Allow three-way Handshake
-iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-
-# Stop Masked Attacks
-iptables -A INPUT -p icmp --icmp-type 13 -j DROP
-iptables -A INPUT -p icmp --icmp-type 17 -j DROP
-iptables -A INPUT -p icmp --icmp-type 14 -j DROP
-iptables -A INPUT -p icmp -m limit --limit 1/second -j ACCEPT
-
-# Discard invalid Packets
-iptables -A INPUT -m state --state INVALID -j DROP
-iptables -A FORWARD -m state --state INVALID -j DROP
-iptables -A OUTPUT -m state --state INVALID -j DROP
-
-# Drop Spoofing attacks
-iptables -A INPUT -s 10.0.0.0/8 -j DROP
-iptables -A INPUT -s 169.254.0.0/16 -j DROP
-iptables -A INPUT -s 172.16.0.0/12 -j DROP
-iptables -A INPUT -s 127.0.0.0/8 -j DROP
-iptables -A INPUT -s 192.168.0.0/24 -j DROP
-iptables -A INPUT -s 224.0.0.0/4 -j DROP
-iptables -A INPUT -d 224.0.0.0/4 -j DROP
-iptables -A INPUT -s 240.0.0.0/5 -j DROP
-iptables -A INPUT -d 240.0.0.0/5 -j DROP
-iptables -A INPUT -s 0.0.0.0/8 -j DROP
-iptables -A INPUT -d 0.0.0.0/8 -j DROP
-iptables -A INPUT -d 239.255.255.0/24 -j DROP
-iptables -A INPUT -d 255.255.255.255 -j DROP
-
-# Drop packets with excessive RST to avoid Masked attacks
-iptables -A INPUT -p tcp -m tcp --tcp-flags RST RST -m limit --limit 2/second --limit-burst 2 -j ACCEPT
-
-# Block ips doing portscan for 24 hours
-iptables -A INPUT   -m recent --name portscan --rcheck --seconds 86400 -j DROP
-iptables -A FORWARD -m recent --name portscan --rcheck --seconds 86400 -j DROP
-
-# After 24 hours remove IP from block list
-iptables -A INPUT   -m recent --name portscan --remove
-iptables -A FORWARD -m recent --name portscan --remove
-
-# Allow ssh
-iptables -A INPUT -p tcp -m tcp --dport 141 -j ACCEPT
-
-# Allow Ping
-iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
-
-# Allow one ssh connection at a time
-iptables -A INPUT -p tcp --syn --dport 141 -m connlimit --connlimit-above 2 -j REJECT
-
-iptables-save > /etc/iptables/rules.v4
-ip6tables-save > /etc/iptables/rules.v6
-
-# Install fail2ban
-apt install fail2ban -y
-
-# Configure Kernel
-echo "net.ipv4.tcp_syncookies: 1
+configure_kernel() {
+  # Configure Kernel
+  echo "net.ipv4.tcp_syncookies: 1
 net.ipv4.conf.all.accept_source_route: 0
 net.ipv6.conf.all.accept_source_route: 0
 net.ipv4.conf.default.accept_source_route: 0
@@ -110,15 +117,21 @@ kernel.core_uses_pid: 1
 kernel.kptr_restrict: 2
 kernel.sysrq: 0
 kernel.yama.ptrace_scope: 1" > /etc/sysctl.d/80-lockdown.conf
-sysctl --system
+  sysctl --system
+}
 
-# Enable automatic updates
-apt install unattended-upgrades
-dpkg-reconfigure -plow unattended-upgrades
+automatic_updates() {
+  # Enable automatic updates
+  apt install unattended-upgrades -y
+  dpkg-reconfigure -plow unattended-upgrades
+}
 
-# Install auditd
-apt install auditd -y
-echo "
+configure_auditd() {
+  # Install auditd
+  apt install auditd -y
+
+  # Add config
+  echo "
 # Remove any existing rules
 -D
 
@@ -229,34 +242,30 @@ echo "
 # Make the configuration immutable
 -e 2
 " > /etc/audit/rules.d/audit.rules
-systemctl enable auditd.service
-service auditd restart
+  systemctl enable auditd.service
+  service auditd restart
+}
 
-# Disable core dumps
-echo "* hard core 0" >> /etc/security/limits.conf
-echo "ProcessSizeMax=0
-Storage=none" >> /etc/systemd/coredump.conf
-echo "ulimit -c 0" >> /etc/profile
+disable_core_dumps() {
+  # Disable core dumps
+  echo "* hard core 0" >> /etc/security/limits.conf
+  echo "ProcessSizeMax=0
+  Storage=none" >> /etc/systemd/coredump.conf
+  echo "ulimit -c 0" >> /etc/profile
+}
 
-# Set login.defs
-sed -i s/UMASK.*/UMASK\ 027/ /etc/login.defs
-sed -i s/PASS_MAX_DAYS.*/PASS_MAX_DAYS\ 90/ /etc/login.defs
-sed -i s/PASS_MIN_DAYS.*/PASS_MIN_DAYS\ 7/ /etc/login.defs
-echo "
-SHA_CRYPT_MIN_ROUNDS 1000000
-SHA_CRYPT_MAX_ROUNDS 100000000
-" >> /etc/login.defs
+restrict_login() {
+  # Set login.defs
+  sed -i s/UMASK.*/UMASK\ 027/ /etc/login.defs
+  sed -i s/PASS_MAX_DAYS.*/PASS_MAX_DAYS\ 90/ /etc/login.defs
+  sed -i s/PASS_MIN_DAYS.*/PASS_MIN_DAYS\ 7/ /etc/login.defs
+  echo "SHA_CRYPT_MIN_ROUNDS 1000000
+SHA_CRYPT_MAX_ROUNDS 100000000" >> /etc/login.defs
+}
 
-# Create admin user
-echo "Enter admin username"; read username
-adduser $username
-mkdir /home/$username/.ssh
-cp /root/.ssh/authorized_keys /home/$username/.ssh/authorized_keys
-chown -R $username /home/$username/.ssh
-usermod -aG sudo $username
-
-# Secure ssh
-echo "
+secure_ssh() {
+  # Secure ssh
+  echo "
 ClientAliveCountMax 2
 Compression no
 LogLevel VERBOSE
@@ -266,79 +275,152 @@ TCPKeepAlive no
 AllowAgentForwarding no
 AllowTcpForwarding no
 Port 141
-AllowUsers $username
-PermitRootLogin no
 PasswordAuthentication no
 " >> /etc/ssh/sshd_config
-sed -i s/^X11Forwarding.*/X11Forwarding\ no/ /etc/ssh/sshd_config
-sed -i s/^UsePAM.*/UsePAM\ no/ /etc/ssh/sshd_config
+  sed -i s/^X11Forwarding.*/X11Forwarding\ no/ /etc/ssh/sshd_config
+  sed -i s/^UsePAM.*/UsePAM\ no/ /etc/ssh/sshd_config
+}
 
-# Add legal banner
-echo "
+create_admin_user() {
+  # Create admin user
+  echo "Enter admin username"; read username
+  adduser $username
+  mkdir /home/$username/.ssh
+  cp /root/.ssh/authorized_keys /home/$username/.ssh/authorized_keys
+  chown -R $username /home/$username/.ssh
+  usermod -aG sudo $username
+
+  # Restrict ssh to admin user
+  echo "
+AllowUsers $username
+PermitRootLogin no
+" >> /etc/ssh/sshd_config
+}
+
+add_legal_banner() {
+  # Add legal banner
+  echo "
 Unauthorized access to this server is prohibited.
 Legal action will be taken. Disconnect now.
 " > /etc/issue
-echo "
+  echo "
 Unauthorized access to this server is prohibited.
 Legal action will be taken. Disconnect now.
 " > /etc/issue.net
+}
 
-# Install recommended packages
-apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide usbguard acct -y
+install_recommended_packages() {
+  # Install recommended packages
+  apt install apt-listbugs apt-listchanges needrestart debsecan debsums libpam-cracklib aide usbguard acct -y
+}
 
-# Setup aide
-aideinit
-mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+setup_aide() {
+  # Setup aide
+  aideinit
+  mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+}
 
-# Enable process accounting
-systemctl enable acct.service
-systemctl start acct.service
+enable_process_accounting() {
+  # Enable process accounting
+  systemctl enable acct.service
+  systemctl start acct.service
+}
 
-# Disable unused filesystems, firewire and protocols
-echo "install cramfs /bin/true
+disable_uncommon_filesystems() {
+  # Disable uncommon filesystems
+  echo "install cramfs /bin/true
 install freevxfs /bin/true
 install hfs /bin/true
 install hfsplus /bin/true
 install jffs2 /bin/true
 install squashfs /bin/true" >> /etc/modprobe.d/filesystems.conf
-echo "install udf /bin/true
-blacklist usb-storage
+}
+
+disable_firewire() {
+  echo "install udf /bin/true
 blacklist firewire-core
 blacklist firewire-ohci
 blacklist firewire-sbp2" >> /etc/modprobe.d/blacklist.conf
-echo "install sctp /bin/true
+}
+
+disable_usb() {
+  echo "blacklist usb-storage" >> /etc/modprobe.d/blacklist.conf
+}
+
+disable_uncommon_protocols() {
+  echo "install sctp /bin/true
 install dccp /bin/true
 install rds /bin/true
 install tipc /bin/true" >> /etc/modprobe.d/protocols.conf
+}
 
-# Change /root permissions
-chmod 700 /root
-chmod 750 /home/debian
+change_root_permissions() {
+ # Change /root permissions
+  chmod 700 /root
+  chmod 750 /home/debian
+}
 
-# Restrict access to compilers
-chmod o-rx /usr/bin/as
+restrict_access_to_compilers() {
+  # Restrict access to compilers
+  chmod o-rx /usr/bin/as
+}
 
-# Move tmp to tmpfs
-echo "tmpfs /tmp tmpfs rw,nosuid,nodev" >> /etc/fstab
+move_tmp_to_tmpfs() {
+  # Move tmp to tmpfs
+  echo "tmpfs /tmp tmpfs rw,nosuid,nodev" >> /etc/fstab
+}
 
-# Mount tmp with noexec
-mount -o remount,noexec /tmp
+remount_dir_with_restrictions() {
+  # Mount tmp with noexec
+  mount -o remount,noexec /tmp
 
-# Mount /proc with hidepid=2
-mount -o remount,rw,hidepid=2 /proc
+  # Mount /proc with hidepid=2
+  mount -o remount,rw,hidepid=2 /proc
 
-# Mount /dev with noexec
-mount -o remount,noexec /dev
+  # Mount /dev with noexec
+  mount -o remount,noexec /dev
 
-# Mount /run as nodev
-mount -o remount,nodev /run
+  # Mount /run as nodev
+  mount -o remount,nodev /run
+}
 
-# Purge old/removed packages
-apt autoremove -y
-apt purge "$(dpkg -l | grep '^rc' | awk '{print $2}')" -y
+purge_old_packages() {
+  # Purge old/removed packages
+  apt autoremove -y
+  apt purge "$(dpkg -l | grep '^rc' | awk '{print $2}')" -y
+}
 
-# Info
-echo "From now on access this host with 'ssh $username@$(hostname) -p 141'"
+run() {
+  declare -f "$1"
+  echo "$2"
+  echo "Run the above commands? [y/N]"
+  read -r answer
+  if [ "$answer" != "${answer#[Yy]}" ] ;then
+    $1
+  fi
+}
 
-# Reboot
-reboot
+run apt_update "Update and upgrade all packages"
+run configure_iptables "Configure iptables"
+run install_fail2ban "Install fail2ban"
+run configure_kernel "Configure kernel"
+run automatic_updates "Setup automatic updates"
+run configure_auditd "Setup auditd"
+run disable_core_dumps "Disable core dumps"
+run restrict_login "Restrict login"
+run secure_ssh "Secure ssh"
+run create_admin_user "Create admin user"
+run add_legal_banner "Add legal banner"
+run install_recommended_packages "Install recommended packages"
+run setup_aide "Setup aide"
+run enable_process_accounting "Enable process accounting"
+run disable_uncommon_filesystems "Disable unused filesystems"
+run disable_firewire "Disable firewire"
+run disable_usb "Disable usb"
+run disable_uncommon_protocols "Disable uncommon protocols"
+run change_root_permissions "Change root dir permissions"
+run restrict_access_to_compilers "Restrict access to compilers"
+run move_tmp_to_tmpfs "Move tmp to tmpfs"
+run remount_dir_with_restrictions "Remount /tmp /proc /dev /run to be more restrictive"
+run purge_old_packages "Purge old packages"
+run reboot "Reboot"
