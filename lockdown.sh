@@ -112,13 +112,8 @@ kernel.sysrq: 0
 kernel.yama.ptrace_scope: 1" > /etc/sysctl.d/80-lockdown.conf
 sysctl --system
 
-# Add Daily Update Cron Job
-touch job
-echo "@daily apt update; apt dist-upgrade -y" >> job
-crontab job
-rm job
-
 # Enable automatic updates
+apt install unattended-upgrades
 dpkg-reconfigure -plow unattended-upgrades
 
 # Install auditd
