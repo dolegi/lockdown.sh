@@ -391,7 +391,7 @@ purge_old_packages() {
 }
 
 run() {
-  declare -f "$1"
+  type "$1" | tail -n +3
   echo "$2"
   echo "Run the above commands? [y/N]"
   read -r answer
