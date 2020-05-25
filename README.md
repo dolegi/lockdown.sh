@@ -8,7 +8,7 @@ Lockdown.sh is a single file zero config shell script to be run to lockdown a ne
 
 - Zero Config
 - Zero Install
-- Single file POSIX shell script
+- Single file shell script
 
 ## WARNING
 This script changes the ssh port to `141`. And restricts ssh to key only for the created admin user if an admin user is created.

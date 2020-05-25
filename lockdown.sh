@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 apt_update() {
   # Update package list
@@ -391,7 +391,7 @@ purge_old_packages() {
 }
 
 run() {
-  type "$1" | tail -n +3
+  typeset -f "$1" | tail -n +3
   echo "$2"
   echo "Run the above commands? [y/N]"
   read -r answer
