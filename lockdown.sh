@@ -283,12 +283,12 @@ PasswordAuthentication no
 
 create_admin_user() {
   # Create admin user
-  echo "Enter admin username"; read username
-  adduser $username
-  mkdir /home/$username/.ssh
-  cp /root/.ssh/authorized_keys /home/$username/.ssh/authorized_keys
-  chown -R $username /home/$username/.ssh
-  usermod -aG sudo $username
+  echo "Enter admin username"; read -r username
+  adduser "$username"
+  mkdir "/home/$username/.ssh"
+  cp /root/.ssh/authorized_keys "/home/$username/.ssh/authorized_keys"
+  chown -R "$username" "/home/$username/.ssh"
+  usermod -aG sudo "$username"
 
   # Restrict ssh to admin user
   echo "
