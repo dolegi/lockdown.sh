@@ -391,7 +391,7 @@ purge_old_packages() {
 }
 
 run() {
-  typeset -f "$1" | tail -n +3
+  typeset -f "$1" | tail -n +2
   echo "$2"
   echo "Run the above commands? [y/N]"
   read -r answer
